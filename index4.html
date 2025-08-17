@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Attendance Dashboard - Full Class</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f7fa; margin:0; padding:20px; }
+    header { text-align:center; margin-bottom:18px; }
+    h1 { margin:6px 0; font-size:22px; }
+    .login-card, .app { max-width:1100px; margin: 0 auto; background:white; padding:18px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    .login-card { width:360px; margin-top:60px; }
+    .login-row { margin:10px 0; }
+    input[type="text"], input[type="password"], select { width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; }
+    button { background:#0b79d0; color:white; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; }
+    button:hover { background:#0969b8; }
+    .top-row { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:14px; }
+    .meta { font-size:14px; color:#333; }
+    .bars { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    .bar-card { flex:1; min-width:200px; }
+    .bar-label { font-weight:600; margin-bottom:6px; }
+    .progress { width:100%; height:28px; background:#e6e6e6; border-radius:20px; overflow:hidden; }
+    .progress-inner { height:100%; text-align:center; color:white; line-height:28px; font-weight:600; white-space:nowrap; }
+    .present { background: #2ecc71; width:0%; }
+    .absent  { background: #e74c3c; width:0%; }
+    .event   { background: #f39c12; width:0%; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:left; font-size:13px; }
+    th { background:#34495e; color:white; text-align:center; }
+    td.center { text-align:center; }
+    .actions { margin-top:12px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    .small { font-size:13px; color:#555; }
+    .footer-note { margin-top:10px; color:#666; font-size:13px; }
+    @media (max-width:700px){
+      .top-row { flex-direction:column; align-items:stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Attendance System — Faculty Demo</h1>
+  <div class="small">Login as faculty (example): <b>ID = 24695A2804</b> &nbsp; <b>Password = Afz@l2005</b></div>
+</header>
+
+<!-- LOGIN CARD -->
+<div class="login-card" id="loginCard">
+  <div style="font-weight:700; font-size:16px; margin-bottom:8px;">Faculty Login</div>
+  <div class="login-row">
+    <input id="facultyId" type="text" placeholder="Faculty ID (e.g. 24695A2804)">
+  </div>
+  <div class="login-row">
+    <input id="facultyPass" type="password" placeholder="Password (e.g. Afz@l2005)">
+  </div>
+  <div style="text-align:right;">
+    <button onclick="doLogin()">Login</button>
+  </div>
+  <div id="loginError" style="color:#c0392b; margin-top:8px; display:none;"></div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app" style="display:none; margin-top:18px;">
+
+  <div class="top-row">
+    <div class="meta">
+      <div><strong>Faculty:</strong> PATAN AFZAL KHAN</div>
+      <div style="margin-top:6px;"><strong>Class:</strong> CST-A &nbsp; | &nbsp; <strong>Subject:</strong> (select)</div>
+    </div>
+
+    <div style="text-align:right;">
+      <div><strong>Date:</strong> <span id="today"></span></div>
+      <div style="margin-top:6px;"><strong>Time:</strong> <span id="now"></span></div>
+    </div>
+  </div>
+
+  <div class="bars" aria-hidden="false">
+    <div class="bar-card">
+      <div class="bar-label">Present</div>
+      <div class="progress"><div id="barPresent" class="progress-inner present">0%</div></div>
+    </div>
+    <div class="bar-card">
+      <div class="bar-label">Absent</div>
+      <div class="progress"><div id="barAbsent" class="progress-inner absent">0%</div></div>
+    </div>
+    <div class="bar-card">
+      <div class="bar-label">Event</div>
+      <div class="progress"><div id="barEvent" class="progress-inner event">0%</div></div>
+    </div>
+  </div>
+
+  <div style="margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+    <div class="small">Mark each student as <b>Present</b>, <b>Absent</b> or <b>Event</b>. Percentages update live.</div>
+    <div>
+      <button onclick="markAll('Present')">Mark All Present</button>
+      <button onclick="markAll('Absent')" style="background:#e74c3c; margin-left:6px;">Mark All Absent</button>
+      <button onclick="clearAll()" style="background:#888; margin-left:6px;">Clear</button>
+    </div>
+  </div>
+
+  <table id="studentTable" aria-label="student table">
+    <thead>
+      <tr>
+        <th style="width:120px;">Register No</th>
+        <th>Name</th>
+        <th style="width:120px;">Present</th>
+        <th style="width:120px;">Absent</th>
+        <th style="width:120px;">Event</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="actions">
+    <div>
+      <button onclick="submitAttendance()">Submit Attendance</button>
+    </div>
+    <div class="small">Total students: <span id="totalCount">0</span> &nbsp; | &nbsp; Marked: <span id="markedCount">0</span></div>
+  </div>
+
+  <div class="footer-note">Note: This is a front-end demo. When you’re ready I can show you how to send the data to AWS Lambda + DynamoDB.</div>
+</div>
+
+<script>
+  // Faculty credentials (example)
+  const FACULTY_ID = "24695A2804";
+  const FACULTY_PASS = "Afz@l2005";
+
+  // Student list exactly as you gave (69 entries)
+  const students = [
+["23691A2801","SHAIK ABDUL ALEEM"],
+["23691A2802","INDLA ABHISHEK"],
+["23691A2803","SHAIK ADIL"],
+["23691A2804","PALAKA AKHIL MAHADEV"],
+["23691A2805","SOMSETTI AKHILA"],
+["23691A2806","MULANKAPPA GARI AKHILESWARI"],
+["23691A2807","SYED AMEENA"],
+["23691A2808","VENKATASIVAREDDYGARI AMRUTHA"],
+["23691A2809","MAKA ANILKUMAR REDDY"],
+["23691A2810","DEVARAPALLI ANUSHA"],
+["23691A2811","GANDLA  ANUSHA"],
+["23691A2812","RAYARAPU ANUSHA"],
+["23691A2813","MOPURI ASHWINI"],
+["23691A2814","SHAIK ASMA BANU"],
+["23691A2815","CHARALA BABU REDDY"],
+["23691A2816","KAMMARA BHARATH ACHARI"],
+["23691A2817","KAMASANI BHARATH KUMAR"],
+["23691A2818","TAMMINENI MEDARA BHARATH KUMAR"],
+["23691A2819","SOMASEKHAR GARI BHARATHKUMAR"],
+["23691A2820","KUNDELLA CHENNAKESAVULU BHAVANA"],
+["23691A2821","LACHANNAGARI BHAVYA"],
+["23691A2822","BHAVYA PANJURI"],
+["23691A2823","CHERUKUMUDI BRAMHENDRA"],
+["23691A2824","KURAVA CHANDANA"],
+["23691A2825","MEESALA CHANDU PRIYA"],
+["23691A2826","THOTLI CHARAN TEJ REDDY"],
+["23691A2827","RAGIMANI CHITHRA"],
+["23691A2828","DANDURI REVANTH REDDY"],
+["23691A2829","YALLA DEDEEPYA"],
+["23691A2830","MASAPALLI DEEPIKA"],
+["23691A2831","S DEVIKA"],
+["23691A2832","KANNEMADUGU DILEEP KUMAR REDDY"],
+["23691A2833","T DIVYASREE"],
+["23691A2834","SHAIK FAIZAN HUSSAIN"],
+["23691A2835","SHAIK MOHAMMED FASIL"],
+["23691A2836","PALAGIRI MOHAMMED FAZIL"],
+["23691A2837","PALLE GAYATHRI"],
+["23691A2838","RAMABHADRA GEETHIKA"],
+["23691A2839","ACHAMMAGARI GOWTHAMI"],
+["23691A2840","YARRADODDI HANEESHA"],
+["23691A2841","CHINTA HARISH NAIDU"],
+["23691A2842","YERRABALLI HARISH"],
+["23691A2843","BOMMALATA HARSHAVARDHAN"],
+["23691A2844","PEDDASANI HARSHAVARDHAN REDDY"],
+["23691A2845","VADA HARSHAVARDHAN REDDY"],
+["23691A2846","DAYYALA HARSHITHA"],
+["23691A2847","RAYADURGAM  HARSHITHA"],
+["23691A2848","TEKULAPALEM  HARSHITHA"],
+["23691A2849","ADIMULAM  HEMA PRADEEP"],
+["23691A2850","YERRAMREDDY HEMANTH REDDY"],
+["23691A2851","RASAM HEMAVATHI"],
+["23691A2852","SHAIK  IRFAN"],
+["23691A2853","CHITTA ISHITHA REDDY"],
+["23691A2854","GARNIMITTA JAGADEESH"],
+["23691A2856","SADDALA JAYA CHANDRA"],
+["23691A2857","UGRANAM JAYADEV ROYAL"],
+["23691A2858","HARI JENIN EVANJILIN"],
+["23691A2859","VAKKALA JESHWANTH"],
+["23691A2860","ALLAM JYOTHEESWAR REDDY"],
+["23691A2862","CHANDRA  KARTHIKEYA"],
+["23691A2863","SHAIK KASHIFA MUSKAN"],
+["23691A2864","THARIGONDA SHAIK MOHAMMED KHADEER"],
+["23691A2865","KOLA KIRAN KUMAR"],
+["23691A2866","PANJURI KIRAN KUMAR REDDY"],
+["24695A2801","SHAIK ABBAS"],
+["24695A2802","KILARI ABHISEK KUMAR"],
+["24695A2803","KUNIGIRI ABHISHEK"],
+["24695A2804","PATAN AFZAL KHAN"],
+["24695A2805","KUMMARI ASHOK"]
+  ];
+
+  // helper to format date/time
+  function pad(n){return n<10?"0"+n:n;}
+  function updateDateTime(){
+    const now = new Date();
+    document.getElementById('today').textContent = now.getFullYear() + "-" + pad(now.getMonth()+1) + "-" + pad(now.getDate());
+    document.getElementById('now').textContent = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+  }
+  setInterval(updateDateTime, 1000);
+  updateDateTime();
+
+  // Login
+  function doLogin(){
+    const id = document.getElementById('facultyId').value.trim();
+    const pass = document.getElementById('facultyPass').value;
+    const err = document.getElementById('loginError');
+    if(id === FACULTY_ID && pass === FACULTY_PASS){
+      document.getElementById('loginCard').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      populateTable();
+    } else {
+      err.style.display = 'block';
+      err.textContent = 'Invalid credentials. Use example ID/password to demo.';
+    }
+  }
+
+  // build table
+  function populateTable(){
+    const tbody = document.querySelector('#studentTable tbody');
+    tbody.innerHTML = '';
+    students.forEach(s => {
+      const tr = document.createElement('tr');
+      const rollTd = document.createElement('td'); rollTd.textContent = s[0]; rollTd.style.textAlign='center';
+      const nameTd = document.createElement('td'); nameTd.textContent = s[1];
+      const pTd = document.createElement('td'); pTd.className='center';
+      const aTd = document.createElement('td'); aTd.className='center';
+      const eTd = document.createElement('td'); eTd.className='center';
+
+      const name = 'att_' + s[0];
+      pTd.innerHTML = `<input type="radio" name="${name}" value="Present" onchange="updateProgress()">`;
+      aTd.innerHTML = `<input type="radio" name="${name}" value="Absent" onchange="updateProgress()">`;
+      eTd.innerHTML = `<input type="radio" name="${name}" value="Event" onchange="updateProgress()">`;
+
+      tr.appendChild(rollTd);
+      tr.appendChild(nameTd);
+      tr.appendChild(pTd);
+      tr.appendChild(aTd);
+      tr.appendChild(eTd);
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('totalCount').textContent = students.length;
+    updateProgress();
+  }
+
+  // compute progress and update bars
+  function updateProgress(){
+    const total = students.length;
+    let present=0, absent=0, event=0, marked=0;
+    students.forEach(s=>{
+      const name = 'att_' + s[0];
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      if(checked){
+        marked++;
+        if(checked.value === 'Present') present++;
+        else if(checked.value === 'Absent') absent++;
+        else if(checked.value === 'Event') event++;
+      }
+    });
+
+    const pPct = Math.round((present/total)*100);
+    const aPct = Math.round((absent/total)*100);
+    const ePct = Math.round((event/total)*100);
+
+    // update visual bars and text
+    const bp = document.getElementById('barPresent');
+    const ba = document.getElementById('barAbsent');
+    const be = document.getElementById('barEvent');
+
+    bp.style.width = pPct + '%'; bp.textContent = pPct + '%';
+    ba.style.width = aPct + '%'; ba.textContent = aPct + '%';
+    be.style.width = ePct + '%'; be.textContent = ePct + '%';
+
+    document.getElementById('markedCount').textContent = marked;
+  }
+
+  // mark all helper
+  function markAll(status){
+    students.forEach(s=>{
+      const name = 'att_' + s[0];
+      const el = document.querySelector(`input[name="${name}"][value="${status}"]`);
+      if(el) el.checked = true;
+    });
+    updateProgress();
+  }
+
+  function clearAll(){
+    students.forEach(s=>{
+      const name = 'att_' + s[0];
+      const els = document.querySelectorAll(`input[name="${name}"]`);
+      els.forEach(x=>x.checked=false);
+    });
+    updateProgress();
+  }
+
+  // submit - show JSON in console (later you can send to API)
+  function submitAttendance(){
+    const payload = students.map(s=>{
+      const name = 'att_' + s[0];
+      const checked = document.querySelector(`input[name="${name}"]:checked`);
+      return {
+        RegisterNo: s[0],
+        Name: s[1],
+        Status: checked ? checked.value : "Not Marked",
+        MarkedBy: FACULTY_ID,
+        Date: document.getElementById('today').textContent
+      };
+    });
+    console.log("Attendance payload:", payload);
+    alert('Attendance prepared. Check browser console (F12) for JSON payload.');
+  }
+</script>
+
+</body>
+</html>
